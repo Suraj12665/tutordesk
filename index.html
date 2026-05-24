@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TutorDesk Pro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+:root{
+  --bg:#0f1117;--surface:#181c27;--surface2:#1e2436;--border:#2a3045;
+  --accent:#4f8ef7;--accent2:#f7934f;--green:#34d399;--red:#f87171;
+  --yellow:#fbbf24;--text:#e8eaf0;--muted:#6b7280;--white:#fff;
+  --card-shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+/* HEADER */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--white)}
+.logo em{color:var(--accent);font-style:normal}
+.header-right{display:flex;align-items:center;gap:12px}
+.gdrive-status{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:8px;font-size:0.8rem;font-weight:600;border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .2s}
+.gdrive-status.connected{border-color:#34d39960;background:#34d39915;color:var(--green)}
+.gdrive-status.disconnected{border-color:#f8717160;color:var(--red)}
+.gdrive-status svg{width:16px;height:16px}
+
+/* LAYOUT */
+.app-body{display:flex;height:calc(100vh - 62px)}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:20px 12px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;overflow-y:auto}
+.sidebar-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:8px 10px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:0.85rem;color:var(--muted);transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:'Sora',sans-serif}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:linear-gradient(135deg,#4f8ef720,#4f8ef708);color:var(--accent);border:1px solid #4f8ef730}
+.nav-item .icon{font-size:1rem;width:20px;text-align:center}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:28px}
+.page{display:none}
+.page.active{display:block}
+
+/* PAGE HEADER */
+.page-title{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--white);margin-bottom:4px}
+.page-sub{color:var(--muted);font-size:0.83rem;margin-bottom:24px}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.stat-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px}
+.stat-val{font-family:'Playfair Display',serif;font-size:2rem;color:var(--white)}
+.stat-sub{font-size:0.75rem;color:var(--muted);margin-top:2px}
+.stat.green .stat-val{color:var(--green)}
+.stat.blue .stat-val{color:var(--accent)}
+.stat.orange .stat-val{color:var(--accent2)}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px}
+.card-title{font-size:1rem;font-weight:600;color:var(--white);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.full{grid-column:1/-1}
+.fg.third{grid-column:span 1}
+.fg label{font-size:0.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.fg input,.fg select,.fg textarea{
+  padding:10px 13px;border:1.5px solid var(--border);border-radius:8px;
+  background:var(--surface2);color:var(--text);font-family:'Sora',sans-serif;font-size:0.88rem;
+  outline:none;transition:border-color .18s
+}
+.fg input:focus,.fg select,.fg select:focus,.fg textarea:focus{border-color:var(--accent)}
+.fg select option{background:var(--surface2)}
+.fg textarea{resize:vertical;min-height:70px}
+.divider{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:4px 0}
+.divider span{font-size:0.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);white-space:nowrap}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.form-actions{grid-column:1/-1;display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+
+/* BUTTONS */
+.btn{padding:9px 20px;border:none;border-radius:8px;font-family:'Sora',sans-serif;font-size:0.83rem;font-weight:600;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#3a7de8;transform:translateY(-1px)}
+.btn-success{background:var(--green);color:#064e3b}
+.btn-success:hover{background:#10b981;transform:translateY(-1px)}
+.btn-orange{background:var(--accent2);color:#fff}
+.btn-orange:hover{background:#e07c35}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--border)}
+.btn-danger{background:#7f1d1d;color:#fca5a5}
+.btn-danger:hover{background:#991b1b}
+.btn-sm{padding:5px 12px;font-size:0.75rem}
+.btn-xs{padding:3px 9px;font-size:0.72rem}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;min-width:700px}
+thead tr{background:var(--surface2)}
+thead th{padding:11px 14px;text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .12s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+tbody td{padding:11px 14px;font-size:0.85rem}
+.tbl-controls{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.search-wrap{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 13px;flex:1;max-width:300px}
+.search-wrap input{border:none;background:transparent;color:var(--text);font-family:'Sora',sans-serif;font-size:0.88rem;outline:none;width:100%}
+
+/* BADGES */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;letter-spacing:.3px}
+.badge-green{background:#064e3b;color:var(--green)}
+.badge-red{background:#7f1d1d;color:#fca5a5}
+.badge-yellow{background:#78350f;color:var(--yellow)}
+.badge-blue{background:#1e3a5f;color:#93c5fd}
+.badge-gray{background:var(--surface2);color:var(--muted)}
+
+/* CLASS TABS */
+.class-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.class-tab{padding:7px 16px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:0.8rem;font-weight:600;transition:all .18s;font-family:'Sora',sans-serif}
+.class-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.class-tab:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+
+/* EMPTY */
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty .big{font-size:2.5rem;margin-bottom:10px}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:none;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:90%;max-width:580px;max-height:88vh;overflow-y:auto;animation:mIn .22s ease}
+@keyframes mIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-hdr h3{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--white)}
+.modal-close{background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;line-height:1}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:13px 20px;border-radius:10px;font-size:0.85rem;font-weight:500;opacity:0;transform:translateY(8px);transition:all .3s;z-index:999;max-width:340px;box-shadow:var(--card-shadow)}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.s{border-left:3px solid var(--green)}
+#toast.e{border-left:3px solid var(--red)}
+#toast.i{border-left:3px solid var(--accent)}
+
+/* PAYMENT LIST */
+.pay-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px}
+.pay-info{flex:1}
+.pay-name{font-weight:600;color:var(--white);font-size:0.9rem}
+.pay-meta{font-size:0.78rem;color:var(--muted);margin-top:2px}
+.pay-amount{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--green);font-weight:700}
+
+/* SETUP GUIDE */
+.setup-step{display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:10px}
+.step-num{background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0;margin-top:2px}
+.step-txt{font-size:0.87rem;color:var(--text);line-height:1.6}
+.step-txt strong{color:var(--white)}
+.step-txt a{color:var(--accent);text-decoration:none}
+.step-txt a:hover{text-decoration:underline}
+.code-box{background:#0a0c14;border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-family:monospace;font-size:0.82rem;color:#a5f3fc;margin-top:6px;word-break:break-all}
+
+@media(max-width:700px){
+  .sidebar{display:none}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .form-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Tutor<em>Desk</em> <span style="font-family:'Sora';font-size:.75rem;color:var(--muted);font-weight:400;margin-left:4px">Pro</span></div>
+  <div class="header-right">
+    <div class="gdrive-status disconnected" id="driveBtn" onclick="handleDriveAuth()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.18 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+      <span id="driveBtnTxt">Connect Google Drive</span>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="exportAllExcel()">⬇ Export Excel</button>
+  </div>
+</header>
+
+<div class="app-body">
+  <nav class="sidebar">
+    <div class="sidebar-label">Overview</div>
+    <button class="nav-item active" onclick="nav('dashboard',this)"><span class="icon">🏠</span>Dashboard</button>
+    <div class="sidebar-label">Students</div>
+    <button class="nav-item" onclick="nav('add-student',this)"><span class="icon">➕</span>Add Student</button>
+    <button class="nav-item" onclick="nav('students',this)"><span class="icon">👥</span>All Students</button>
+    <div class="sidebar-label">Payments</div>
+    <button class="nav-item" onclick="nav('add-payment',this)"><span class="icon">💳</span>Record Payment</button>
+    <button class="nav-item" onclick="nav('payments',this)"><span class="icon">📑</span>Payment History</button>
+    <div class="sidebar-label">Reports</div>
+    <button class="nav-item" onclick="nav('classes',this)"><span class="icon">🏫</span>Class View</button>
+    <div class="sidebar-label">Settings</div>
+    <button class="nav-item" onclick="nav('setup',this)"><span class="icon">⚙️</span>Google Drive Setup</button>
+  </nav>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Overview of your tutoring center</div>
+      <div class="stats-row">
+        <div class="stat blue"><div class="stat-label">Total Students</div><div class="stat-val" id="st-total">0</div><div class="stat-sub">enrolled</div></div>
+        <div class="stat green"><div class="stat-label">Active Students</div><div class="stat-val" id="st-active">0</div><div class="stat-sub">currently studying</div></div>
+        <div class="stat orange"><div class="stat-label">This Month Revenue</div><div class="stat-val" id="st-rev">NPR 0</div><div class="stat-sub">payments received</div></div>
+        <div class="stat"><div class="stat-label">Pending Fees</div><div class="stat-val" id="st-pending" style="color:var(--red)">0</div><div class="stat-sub">students unpaid</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="card">
+          <div class="card-title">📊 Students by Class</div>
+          <div id="class-breakdown"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">💰 Recent Payments</div>
+          <div id="recent-payments"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD STUDENT -->
+    <div class="page" id="page-add-student">
+      <div class="page-title" id="student-form-title">Add New Student</div>
+      <div class="page-sub">Fill in the student's complete details</div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="divider"><span>Personal Information</span></div>
+          <div class="fg"><label>Full Name *</label><input id="s_name" placeholder="e.g. Priya Sharma"></div>
+          <div class="fg"><label>Date of Birth</label><input type="date" id="s_dob"></div>
+          <div class="fg"><label>Gender</label><select id="s_gender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+          <div class="fg"><label>Student WhatsApp</label><input id="s_wa" placeholder="98XXXXXXXX (with country code)"></div>
+          <div class="fg"><label>Student Email</label><input type="email" id="s_email" placeholder="student@email.com"></div>
+          <div class="fg"><label>Address</label><input id="s_address" placeholder="e.g. Lalitpur, Patan"></div>
+
+          <div class="divider"><span>Parent / Guardian</span></div>
+          <div class="fg"><label>Parent / Guardian Name *</label><input id="s_parent" placeholder="Father / Mother name"></div>
+          <div class="fg"><label>Parent WhatsApp *</label><input id="s_pwa" placeholder="98XXXXXXXX"></div>
+          <div class="fg"><label>Parent Phone (alternate)</label><input id="s_pphone" placeholder="98XXXXXXXX"></div>
+          <div class="fg"><label>Relation</label><select id="s_relation"><option value="">Select</option><option>Father</option><option>Mother</option><option>Guardian</option></select></div>
+
+          <div class="divider"><span>Academic Details</span></div>
+          <div class="fg"><label>Class *</label><select id="s_class" onchange="populateSections()">
+            <option value="">Select Class</option>
+            <option>Class 1</option><option>Class 2</option><option>Class 3</option>
+            <option>Class 4</option><option>Class 5</option><option>Class 6</option>
+            <option>Class 7</option><option>Class 8</option><option>Class 9</option>
+            <option>Class 10</option><option>Class 11 (Science)</option><option>Class 11 (Management)</option>
+            <option>Class 12 (Science)</option><option>Class 12 (Management)</option>
+            <option>Bachelor Year 1</option><option>Bachelor Year 2</option>
+            <option>Bachelor Year 3</option><option>Bachelor Year 4</option>
+          </select></div>
+          <div class="fg"><label>Section</label><select id="s_section">
+            <option value="">Select Section</option>
+            <option>A</option><option>B</option><option>C</option><option>D</option>
+            <option>E</option><option>Mixed</option><option>N/A</option>
+          </select></div>
+          <div class="fg"><label>School / College</label><input id="s_school" placeholder="e.g. Kathmandu Model School"></div>
+          <div class="fg"><label>Subject(s) *</label><input id="s_subject" placeholder="e.g. Mathematics, Physics"></div>
+          <div class="fg"><label>Enrollment Date</label><input type="date" id="s_enroll"></div>
+          <div class="fg"><label>Status</label><select id="s_status"><option>Active</option><option>Inactive</option><option>On Hold</option><option>Completed</option></select></div>
+          <div class="fg"><label>Current Score / Grade</label><input id="s_score" placeholder="e.g. A+, 90%, 3.8 GPA"></div>
+          <div class="fg"><label>Monthly Fee (NPR) *</label><input type="number" id="s_fee" placeholder="e.g. 3000"></div>
+          <div class="fg full"><label>Notes / Remarks</label><textarea id="s_notes" placeholder="Any additional notes…"></textarea></div>
+          <div class="form-actions">
+            <button class="btn btn-ghost" onclick="clearStudentForm()">Clear</button>
+            <button class="btn btn-primary" onclick="saveStudent()">💾 Save Student</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL STUDENTS -->
+    <div class="page" id="page-students">
+      <div class="page-title">All Students</div>
+      <div class="page-sub">Search, filter and manage students by class & section</div>
+      <div class="card">
+        <div class="tbl-controls">
+          <div class="search-wrap">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="s-search" placeholder="Search name, subject, school…" oninput="renderStudentTable()">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="f-class" onchange="renderStudentTable()" style="padding:7px 11px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text);font-family:'Sora',sans-serif;font-size:.82rem;outline:none">
+              <option value="">All Classes</option>
+              <option>Class 1</option><option>Class 2</option><option>Class 3</option><option>Class 4</option><option>Class 5</option>
+              <option>Class 6</option><option>Class 7</option><option>Class 8</option><option>Class 9</option><option>Class 10</option>
+              <option>Class 11 (Science)</option><option>Class 11 (Management)</option><option>Class 12 (Science)</option><option>Class 12 (Management)</option>
+              <option>Bachelor Year 1</option><option>Bachelor Year 2</option><option>Bachelor Year 3</option><option>Bachelor Year 4</option>
+            </select>
+            <select id="f-section" onchange="renderStudentTable()" style="padding:7px 11px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text);font-family:'Sora',sans-serif;font-size:.82rem;outline:none">
+              <option value="">All Sections</option>
+              <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>Mixed</option>
+            </select>
+            <select id="f-status" onchange="renderStudentTable()" style="padding:7px 11px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text);font-family:'Sora',sans-serif;font-size:.82rem;outline:none">
+              <option value="">All Status</option><option>Active</option><option>Inactive</option><option>On Hold</option><option>Completed</option>
+            </select>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>#</th><th>Name</th><th>Class</th><th>Sec</th><th>Subject(s)</th><th>Parent</th><th>WhatsApp</th><th>Fee/mo</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="student-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ADD PAYMENT -->
+    <div class="page" id="page-add-payment">
+      <div class="page-title">Record Payment</div>
+      <div class="page-sub">Log a student's fee payment</div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="divider"><span>Student Info</span></div>
+          <div class="fg">
+            <label>Select Student *</label>
+            <select id="p_student" onchange="fillStudentPayInfo()">
+              <option value="">— Select Student —</option>
+            </select>
+          </div>
+          <div class="fg"><label>Class</label><input id="p_class" readonly placeholder="Auto-filled" style="opacity:.7"></div>
+          <div class="fg"><label>Section</label><input id="p_section" readonly placeholder="Auto-filled" style="opacity:.7"></div>
+          <div class="fg"><label>Parent Name</label><input id="p_parent" readonly placeholder="Auto-filled" style="opacity:.7"></div>
+          <div class="fg"><label>Parent WhatsApp</label><input id="p_pwa" readonly placeholder="Auto-filled" style="opacity:.7"></div>
+          <div class="fg"><label>Monthly Fee (NPR)</label><input id="p_monthly" readonly placeholder="Auto-filled" style="opacity:.7"></div>
+
+          <div class="divider"><span>Payment Details</span></div>
+          <div class="fg"><label>Payment Month *</label><select id="p_month">
+            <option value="">Select Month</option>
+            <option>Baishakh (Apr-May)</option><option>Jestha (May-Jun)</option><option>Ashadh (Jun-Jul)</option>
+            <option>Shrawan (Jul-Aug)</option><option>Bhadra (Aug-Sep)</option><option>Ashwin (Sep-Oct)</option>
+            <option>Kartik (Oct-Nov)</option><option>Mangsir (Nov-Dec)</option><option>Poush (Dec-Jan)</option>
+            <option>Magh (Jan-Feb)</option><option>Falgun (Feb-Mar)</option><option>Chaitra (Mar-Apr)</option>
+            <option>January</option><option>February</option><option>March</option><option>April</option>
+            <option>May</option><option>June</option><option>July</option><option>August</option>
+            <option>September</option><option>October</option><option>November</option><option>December</option>
+          </select></div>
+          <div class="fg"><label>Payment Year</label><input id="p_year" type="number" placeholder="e.g. 2081 or 2024"></div>
+          <div class="fg"><label>Amount Paid (NPR) *</label><input type="number" id="p_amount" placeholder="e.g. 3000"></div>
+          <div class="fg"><label>Payment Method</label><select id="p_method">
+            <option>Cash</option><option>eSewa</option><option>Khalti</option><option>Bank Transfer</option><option>Cheque</option><option>Other</option>
+          </select></div>
+          <div class="fg"><label>Payment Date *</label><input type="date" id="p_date"></div>
+          <div class="fg"><label>Received By</label><input id="p_receiver" placeholder="Teacher / Staff name"></div>
+          <div class="fg"><label>Payment Status</label><select id="p_status">
+            <option>Paid</option><option>Partial</option><option>Advance</option>
+          </select></div>
+          <div class="fg full"><label>Remarks</label><textarea id="p_notes" placeholder="Any notes about this payment…"></textarea></div>
+          <div class="form-actions">
+            <button class="btn btn-ghost" onclick="clearPaymentForm()">Clear</button>
+            <button class="btn btn-success" onclick="savePayment()">✅ Save Payment</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYMENT HISTORY -->
+    <div class="page" id="page-payments">
+      <div class="page-title">Payment History</div>
+      <div class="page-sub">All recorded fee payments</div>
+      <div class="card">
+        <div class="tbl-controls">
+          <div class="search-wrap">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="p-search" placeholder="Search student, month…" oninput="renderPaymentTable()">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="fp-class" onchange="renderPaymentTable()" style="padding:7px 11px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text);font-family:'Sora',sans-serif;font-size:.82rem;outline:none">
+              <option value="">All Classes</option>
+              <option>Class 1</option><option>Class 2</option><option>Class 3</option><option>Class 4</option><option>Class 5</option>
+              <option>Class 6</option><option>Class 7</option><option>Class 8</option><option>Class 9</option><option>Class 10</option>
+              <option>Class 11 (Science)</option><option>Class 11 (Management)</option><option>Class 12 (Science)</option><option>Class 12 (Management)</option>
+              <option>Bachelor Year 1</option><option>Bachelor Year 2</option><option>Bachelor Year 3</option><option>Bachelor Year 4</option>
+            </select>
+            <select id="fp-status" onchange="renderPaymentTable()" style="padding:7px 11px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text);font-family:'Sora',sans-serif;font-size:.82rem;outline:none">
+              <option value="">All Status</option><option>Paid</option><option>Partial</option><option>Advance</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="exportAllExcel()">⬇ Excel</button>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>#</th><th>Student</th><th>Class</th><th>Month</th><th>Year</th><th>Amount</th><th>Method</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="payment-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- CLASS VIEW -->
+    <div class="page" id="page-classes">
+      <div class="page-title">Class-wise View</div>
+      <div class="page-sub">Browse students organized by class and section</div>
+      <div id="class-tabs-container" class="class-tabs"></div>
+      <div id="class-content"></div>
+    </div>
+
+    <!-- SETUP -->
+    <div class="page" id="page-setup">
+      <div class="page-title">Google Drive Setup</div>
+      <div class="page-sub">One-time setup to auto-save data to your Google Drive</div>
+      <div class="card">
+        <div class="card-title">🔑 Enter Your Google API Credentials</div>
+        <div class="form-grid">
+          <div class="fg full">
+            <label>Google Client ID</label>
+            <input id="cfg_client_id" placeholder="Paste your Client ID here (ends with .apps.googleusercontent.com)">
+          </div>
+          <div class="fg full">
+            <label>Google API Key</label>
+            <input id="cfg_api_key" placeholder="Paste your API Key here">
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveConfig()">💾 Save & Connect</button>
+            <button class="btn btn-ghost" onclick="testDrive()">🧪 Test Connection</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:0">
+        <div class="card-title">📋 How to Get Your Google API Credentials (Free, 5 min)</div>
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div class="step-txt">Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> and sign in with <strong>srajbk356@gmail.com</strong></div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div class="step-txt">Click <strong>"Select a project" → "New Project"</strong> → Name it <em>TutorDesk</em> → Click <strong>Create</strong></div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div class="step-txt">In the left menu: <strong>APIs & Services → Library</strong> → Search for <strong>"Google Drive API"</strong> → Click it → Click <strong>Enable</strong></div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">4</div>
+          <div class="step-txt">Go to <strong>APIs & Services → OAuth consent screen</strong> → Choose <strong>External</strong> → Fill: App name = <em>TutorDesk</em>, Support email = your Gmail → Save. Under <strong>Test users</strong>, add <strong>srajbk356@gmail.com</strong></div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">5</div>
+          <div class="step-txt">Go to <strong>APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID</strong> → Application type = <strong>Web application</strong> → Under <em>Authorized JavaScript origins</em>, add the URL where you open this file (or <code>http://localhost</code> if local). Copy the <strong>Client ID</strong> → paste above.</div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">6</div>
+          <div class="step-txt">Click <strong>Create Credentials → API Key</strong> → Copy it → paste above as <strong>API Key</strong>. Restrict it to Google Drive API for security.</div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">7</div>
+          <div class="step-txt">Click <strong>Save & Connect</strong> above, then sign in when prompted. TutorDesk will now auto-save every Excel export to <strong>srajbk356@gmail.com</strong>'s Drive in a folder called <em>TutorDesk Backups</em>. ✅</div>
+        </div>
+        <div style="margin-top:16px;padding:14px;background:#1e3a5f30;border:1px solid #1e3a5f;border-radius:8px;font-size:0.82rem;color:var(--muted)">
+          💡 <strong style="color:var(--text)">Tip:</strong> Once you set this up on one computer, just share the <code>tutordesk_pro.html</code> file with others. They open it and click "Connect Google Drive" — it saves to <strong>your</strong> Google account automatically. No server needed.
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Student Detail Modal -->
+<div class="overlay" id="student-modal" onclick="closeOverlay('student-modal',event)">
+  <div class="modal">
+    <div class="modal-hdr"><h3 id="sm-name"></h3><button class="modal-close" onclick="closeOverlayDirect('student-modal')">✕</button></div>
+    <div id="sm-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>
+  </div>
+</div>
+
+<!-- Payment Detail Modal -->
+<div class="overlay" id="pay-modal" onclick="closeOverlay('pay-modal',event)">
+  <div class="modal">
+    <div class="modal-hdr"><h3 id="pm-name"></h3><button class="modal-close" onclick="closeOverlayDirect('pay-modal')">✕</button></div>
+    <div id="pm-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ───── CONFIG ─────
+let cfg = JSON.parse(localStorage.getItem('td_cfg') || '{}');
+let students = JSON.parse(localStorage.getItem('td_students') || '[]');
+let payments = JSON.parse(localStorage.getItem('td_payments') || '[]');
+let gapi_loaded = false;
+let drive_connected = false;
+let editStudentId = null;
+
+const CLASSES = ['Class 1','Class 2','Class 3','Class 4','Class 5','Class 6','Class 7','Class 8','Class 9','Class 10',
+  'Class 11 (Science)','Class 11 (Management)','Class 12 (Science)','Class 12 (Management)',
+  'Bachelor Year 1','Bachelor Year 2','Bachelor Year 3','Bachelor Year 4'];
+
+// ───── INIT ─────
+document.getElementById('s_enroll').value = today();
+document.getElementById('p_date').value = today();
+if(cfg.client_id) document.getElementById('cfg_client_id').value = cfg.client_id;
+if(cfg.api_key) document.getElementById('cfg_api_key').value = cfg.api_key;
+refreshAll();
+if(cfg.client_id && cfg.api_key) loadGoogleAPI();
+
+function today(){ return new Date().toISOString().slice(0,10); }
+function persist(){
+  localStorage.setItem('td_students',JSON.stringify(students));
+  localStorage.setItem('td_payments',JSON.stringify(payments));
+  refreshAll();
+}
+
+// ───── NAVIGATION ─────
+function nav(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  if(id==='students') renderStudentTable();
+  if(id==='payments') renderPaymentTable();
+  if(id==='add-payment') fillStudentDropdown();
+  if(id==='classes') renderClassView();
+  if(id==='dashboard') renderDashboard();
+}
+
+// ───── DASHBOARD ─────
+function renderDashboard(){
+  document.getElementById('st-total').textContent = students.length;
+  document.getElementById('st-active').textContent = students.filter(s=>s.status==='Active').length;
+  const thisMonth = new Date().getMonth();
+  const thisYear = new Date().getFullYear();
+  const monthPays = payments.filter(p=>{
+    const d = new Date(p.date); return d.getMonth()===thisMonth && d.getFullYear()===thisYear;
+  });
+  const rev = monthPays.reduce((a,p)=>a+Number(p.amount||0),0);
+  document.getElementById('st-rev').textContent = 'NPR '+rev.toLocaleString();
+
+  // Pending: active students who haven't paid this month
+  const paidIds = new Set(monthPays.map(p=>p.studentId));
+  const pending = students.filter(s=>s.status==='Active' && !paidIds.has(s.id)).length;
+  document.getElementById('st-pending').textContent = pending;
+
+  // Class breakdown
+  const byClass = {};
+  students.forEach(s=>{ byClass[s.class] = (byClass[s.class]||0)+1; });
+  const cb = document.getElementById('class-breakdown');
+  if(!Object.keys(byClass).length){ cb.innerHTML='<div class="empty"><div class="big">📚</div><p>No students yet</p></div>'; }
+  else {
+    cb.innerHTML = Object.entries(byClass).sort((a,b)=>b[1]-a[1]).map(([c,n])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:.85rem">${c||'—'}</span>
+        <span class="badge badge-blue">${n} students</span>
+      </div>`).join('');
+  }
+
+  // Recent payments
+  const rp = document.getElementById('recent-payments');
+  const recents = [...payments].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  if(!recents.length){ rp.innerHTML='<div class="empty"><div class="big">💳</div><p>No payments yet</p></div>'; }
+  else {
+    rp.innerHTML = recents.map(p=>{
+      const s = students.find(x=>x.id===p.studentId)||{name:'Unknown'};
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+        <div><div style="font-size:.85rem;font-weight:600;color:var(--text)">${s.name}</div><div style="font-size:.75rem;color:var(--muted)">${p.month||''} • ${p.date||''}</div></div>
+        <div style="font-family:'Playfair Display',serif;color:var(--green)">NPR ${Number(p.amount||0).toLocaleString()}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ───── STUDENT FORM ─────
+function saveStudent(){
+  const name = document.getElementById('s_name').value.trim();
+  if(!name){ toast('Please enter student name.','e'); return; }
+  if(!document.getElementById('s_class').value){ toast('Please select a class.','e'); return; }
+  if(!document.getElementById('s_subject').value.trim()){ toast('Please enter subject(s).','e'); return; }
+
+  const s = {
+    id: editStudentId || Date.now().toString(),
+    name, dob: v('s_dob'), gender: v('s_gender'),
+    whatsapp: v('s_wa'), email: v('s_email'), address: v('s_address'),
+    parent: v('s_parent'), parentWhatsapp: v('s_pwa'), parentPhone: v('s_pphone'), relation: v('s_relation'),
+    class: v('s_class'), section: v('s_section'), school: v('s_school'),
+    subject: v('s_subject'), enrollDate: v('s_enroll'), status: v('s_status'),
+    score: v('s_score'), fee: v('s_fee'), notes: v('s_notes'),
+    addedOn: editStudentId ? students.find(x=>x.id===editStudentId)?.addedOn : today()
+  };
+
+  if(editStudentId){ students = students.map(x=>x.id===editStudentId?s:x); editStudentId=null; toast(name+' updated!','s'); }
+  else { students.push(s); toast(name+' added!','s'); }
+
+  clearStudentForm();
+  persist();
+  autoSaveDrive();
+}
+
+function v(id){ return document.getElementById(id).value; }
+
+function clearStudentForm(){
+  ['s_name','s_dob','s_wa','s_email','s_address','s_parent','s_pwa','s_pphone','s_school','s_subject','s_score','s_fee','s_notes'].forEach(id=>document.getElementById(id).value='');
+  ['s_gender','s_class','s_section','s_relation'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('s_status').value='Active';
+  document.getElementById('s_enroll').value=today();
+  document.getElementById('student-form-title').textContent='Add New Student';
+  editStudentId=null;
+}
+
+function editStudent(id){
+  const s=students.find(x=>x.id===id); if(!s) return;
+  editStudentId=id;
+  const fields={'s_name':s.name,'s_dob':s.dob,'s_wa':s.whatsapp,'s_email':s.email,'s_address':s.address,
+    's_parent':s.parent,'s_pwa':s.parentWhatsapp,'s_pphone':s.parentPhone,'s_school':s.school,
+    's_subject':s.subject,'s_enroll':s.enrollDate,'s_score':s.score,'s_fee':s.fee,'s_notes':s.notes};
+  Object.entries(fields).forEach(([id,val])=>document.getElementById(id).value=val||'');
+  document.getElementById('s_gender').value=s.gender||'';
+  document.getElementById('s_class').value=s.class||'';
+  document.getElementById('s_section').value=s.section||'';
+  document.getElementById('s_relation').value=s.relation||'';
+  document.getElementById('s_status').value=s.status||'Active';
+  document.getElementById('student-form-title').textContent='Edit Student: '+s.name;
+  nav('add-student',null);
+  document.querySelectorAll('.nav-item')[2].classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('Editing '+s.name,'i');
+}
+
+function deleteStudent(id){
+  const s=students.find(x=>x.id===id);
+  if(!confirm('Delete '+s?.name+'? This will also remove their payment records.')) return;
+  students=students.filter(x=>x.id!==id);
+  payments=payments.filter(x=>x.studentId!==id);
+  persist(); toast('Student deleted.','e');
+}
+
+// ───── STUDENT TABLE ─────
+const stBadge={'Active':'badge-green','Inactive':'badge-red','On Hold':'badge-yellow','Completed':'badge-blue'};
+function renderStudentTable(){
+  const q=document.getElementById('s-search').value.toLowerCase();
+  const fc=document.getElementById('f-class').value;
+  const fs=document.getElementById('f-section').value;
+  const fst=document.getElementById('f-status').value;
+  let rows=students.filter(s=>{
+    const mq=!q||[s.name,s.subject,s.school,s.class,s.parent].join(' ').toLowerCase().includes(q);
+    const mc=!fc||s.class===fc;
+    const ms=!fs||s.section===fs;
+    const mst=!fst||s.status===fst;
+    return mq&&mc&&ms&&mst;
+  });
+  const tb=document.getElementById('student-tbody');
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="10"><div class="empty"><div class="big">👤</div><p>${!students.length?'No students yet. Add your first!':'No students match.'}</p></div></td></tr>`;return;}
+  tb.innerHTML=rows.map((s,i)=>`<tr>
+    <td style="color:var(--muted)">${i+1}</td>
+    <td><strong style="color:var(--white)">${s.name}</strong>${s.gender?`<br><span style="color:var(--muted);font-size:.72rem">${s.gender}</span>`:''}</td>
+    <td>${s.class||'—'}</td><td>${s.section||'—'}</td>
+    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.subject||'—'}</td>
+    <td>${s.parent||'—'}</td>
+    <td><a href="https://wa.me/${(s.parentWhatsapp||'').replace(/\D/g,'')}" target="_blank" style="color:var(--green);text-decoration:none">📱${s.parentWhatsapp||'—'}</a></td>
+    <td style="color:var(--accent2)">${s.fee?'NPR '+Number(s.fee).toLocaleString():'—'}</td>
+    <td><span class="badge ${stBadge[s.status]||'badge-gray'}">${s.status||'—'}</span></td>
+    <td><button class="btn btn-xs btn-ghost" onclick="viewStudent('${s.id}')">View</button> <button class="btn btn-xs btn-primary" onclick="editStudent('${s.id}')">Edit</button> <button class="btn btn-xs btn-danger" onclick="deleteStudent('${s.id}')">Del</button></td>
+  </tr>`).join('');
+}
+
+function viewStudent(id){
+  const s=students.find(x=>x.id===id); if(!s) return;
+  document.getElementById('sm-name').textContent=s.name;
+  const fields=[
+    ['Class',s.class],['Section',s.section],['Gender',s.gender],['DOB',s.dob],
+    ['School',s.school],['Subject(s)',s.subject],['Score',s.score],['Fee/Month','NPR '+Number(s.fee||0).toLocaleString()],
+    ['WhatsApp',s.whatsapp],['Email',s.email],['Status',s.status],['Enrolled',s.enrollDate],
+    ['Parent',s.parent],['Relation',s.relation],['Parent WhatsApp',s.parentWhatsapp],['Parent Phone',s.parentPhone],
+    ['Address',s.address],['Notes',s.notes]
+  ];
+  document.getElementById('sm-body').innerHTML=fields.filter(([,v])=>v).map(([l,v])=>
+    `<div><div style="font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:3px">${l}</div><div style="font-size:.88rem;font-weight:500;color:var(--text)">${v}</div></div>`
+  ).join('');
+  document.getElementById('student-modal').classList.add('open');
+}
+
+// ───── PAYMENT FORM ─────
+function fillStudentDropdown(){
+  const sel=document.getElementById('p_student');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Select Student —</option>'+
+    [...students].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>
+      `<option value="${s.id}">${s.name} (${s.class||'?'}${s.section?' '+s.section:''})</option>`
+    ).join('');
+  if(cur) sel.value=cur;
+}
+
+function fillStudentPayInfo(){
+  const id=document.getElementById('p_student').value;
+  const s=students.find(x=>x.id===id);
+  document.getElementById('p_class').value=s?.class||'';
+  document.getElementById('p_section').value=s?.section||'';
+  document.getElementById('p_parent').value=s?.parent||'';
+  document.getElementById('p_pwa').value=s?.parentWhatsapp||'';
+  document.getElementById('p_monthly').value=s?.fee?'NPR '+Number(s.fee).toLocaleString():'';
+}
+
+function savePayment(){
+  if(!document.getElementById('p_student').value){toast('Please select a student.','e');return;}
+  if(!document.getElementById('p_amount').value){toast('Please enter amount paid.','e');return;}
+  if(!document.getElementById('p_month').value){toast('Please select payment month.','e');return;}
+
+  const sid=document.getElementById('p_student').value;
+  const s=students.find(x=>x.id===sid);
+  const p={
+    id:Date.now().toString(), studentId:sid, studentName:s?.name||'',
+    class:s?.class||'', section:s?.section||'',
+    parent:s?.parent||'', parentWhatsapp:s?.parentWhatsapp||'',
+    month:v('p_month'), year:v('p_year'), amount:v('p_amount'),
+    method:v('p_method'), date:v('p_date'), receiver:v('p_receiver'),
+    status:v('p_status'), notes:v('p_notes'),
+    recordedOn:today()
+  };
+  payments.push(p);
+  persist();
+  clearPaymentForm();
+  toast('Payment of NPR '+Number(p.amount).toLocaleString()+' saved for '+s?.name+'!','s');
+  autoSaveDrive();
+}
+
+function clearPaymentForm(){
+  ['p_year','p_amount','p_receiver','p_notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('p_student').value='';
+  document.getElementById('p_month').value='';
+  document.getElementById('p_method').value='Cash';
+  document.getElementById('p_status').value='Paid';
+  document.getElementById('p_date').value=today();
+  ['p_class','p_section','p_parent','p_pwa','p_monthly'].forEach(id=>document.getElementById(id).value='');
+}
+
+function deletePayment(id){
+  if(!confirm('Delete this payment record?')) return;
+  payments=payments.filter(x=>x.id!==id);
+  persist(); renderPaymentTable(); toast('Payment deleted.','e');
+}
+
+// ───── PAYMENT TABLE ─────
+const payBadge={'Paid':'badge-green','Partial':'badge-yellow','Advance':'badge-blue'};
+function renderPaymentTable(){
+  const q=document.getElementById('p-search').value.toLowerCase();
+  const fc=document.getElementById('fp-class').value;
+  const fs=document.getElementById('fp-status').value;
+  let rows=payments.filter(p=>{
+    const mq=!q||[p.studentName,p.month,p.parent,p.class].join(' ').toLowerCase().includes(q);
+    const mc=!fc||p.class===fc;
+    const ms=!fs||p.status===fs;
+    return mq&&mc&&ms;
+  }).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const tb=document.getElementById('payment-tbody');
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="10"><div class="empty"><div class="big">💳</div><p>${!payments.length?'No payments recorded yet.':'No payments match.'}</p></div></td></tr>`;return;}
+  tb.innerHTML=rows.map((p,i)=>`<tr>
+    <td style="color:var(--muted)">${i+1}</td>
+    <td><strong style="color:var(--white)">${p.studentName}</strong><br><span style="color:var(--muted);font-size:.72rem">${p.parent||''}</span></td>
+    <td>${p.class||'—'}</td>
+    <td>${p.month||'—'}</td>
+    <td>${p.year||'—'}</td>
+    <td style="font-family:'Playfair Display',serif;color:var(--green)">NPR ${Number(p.amount||0).toLocaleString()}</td>
+    <td>${p.method||'—'}</td>
+    <td>${p.date||'—'}</td>
+    <td><span class="badge ${payBadge[p.status]||'badge-gray'}">${p.status||'—'}</span></td>
+    <td><button class="btn btn-xs btn-danger" onclick="deletePayment('${p.id}')">Del</button></td>
+  </tr>`).join('');
+}
+
+// ───── CLASS VIEW ─────
+function renderClassView(){
+  const classes=[...new Set(students.map(s=>s.class).filter(Boolean))].sort((a,b)=>{
+    const ai=CLASSES.indexOf(a),bi=CLASSES.indexOf(b);
+    return (ai===-1?99:ai)-(bi===-1?99:bi);
+  });
+  const tabs=document.getElementById('class-tabs-container');
+  const content=document.getElementById('class-content');
+  if(!classes.length){
+    tabs.innerHTML='';
+    content.innerHTML='<div class="empty"><div class="big">🏫</div><p>No students yet.</p></div>';
+    return;
+  }
+  let activeClass=classes[0];
+  function renderClassContent(cls){
+    const classStudents=students.filter(s=>s.class===cls);
+    const sections=[...new Set(classStudents.map(s=>s.section||'General'))].sort();
+    return sections.map(sec=>{
+      const secStudents=classStudents.filter(s=>(s.section||'General')===sec);
+      return `<div class="card" style="margin-bottom:16px">
+        <div class="card-title">Section ${sec} <span style="font-size:.8rem;color:var(--muted);font-weight:400">(${secStudents.length} students)</span></div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>#</th><th>Name</th><th>Subject(s)</th><th>School</th><th>WhatsApp</th><th>Parent</th><th>Parent WA</th><th>Fee</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>${secStudents.map((s,i)=>`<tr>
+            <td style="color:var(--muted)">${i+1}</td>
+            <td><strong style="color:var(--white)">${s.name}</strong></td>
+            <td>${s.subject||'—'}</td>
+            <td style="color:var(--muted);font-size:.8rem">${s.school||'—'}</td>
+            <td><a href="https://wa.me/${(s.whatsapp||'').replace(/\D/g,'')}" target="_blank" style="color:var(--green);text-decoration:none">📱${s.whatsapp||'—'}</a></td>
+            <td>${s.parent||'—'}</td>
+            <td><a href="https://wa.me/${(s.parentWhatsapp||'').replace(/\D/g,'')}" target="_blank" style="color:var(--green);text-decoration:none">📱${s.parentWhatsapp||'—'}</a></td>
+            <td style="color:var(--accent2)">${s.fee?'NPR '+Number(s.fee).toLocaleString():'—'}</td>
+            <td><span class="badge ${stBadge[s.status]||'badge-gray'}">${s.status||'—'}</span></td>
+            <td><button class="btn btn-xs btn-primary" onclick="editStudent('${s.id}')">Edit</button></td>
+          </tr>`).join('')}</tbody>
+        </table></div>
+      </div>`;
+    }).join('');
+  }
+  tabs.innerHTML=classes.map(c=>`<button class="class-tab${c===activeClass?' active':''}" onclick="selectClassTab('${c}',this)">${c}</button>`).join('');
+  content.innerHTML=renderClassContent(activeClass);
+  window._renderClassContent=renderClassContent;
+  window._classContentEl=content;
+}
+
+function selectClassTab(cls,el){
+  document.querySelectorAll('.class-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  window._classContentEl.innerHTML=window._renderClassContent(cls);
+}
+
+// ───── EXCEL EXPORT ─────
+function exportAllExcel(){
+  if(!students.length && !payments.length){ toast('No data to export.','e'); return; }
+  const wb = XLSX.utils.book_new();
+
+  // Summary sheet
+  const activeCount=students.filter(s=>s.status==='Active').length;
+  const totalFees=payments.reduce((a,p)=>a+Number(p.amount||0),0);
+  const sumData=[
+    ['TutorDesk Pro – Report'],['Generated', new Date().toLocaleString()],[],
+    ['Total Students',students.length],['Active Students',activeCount],
+    ['Total Payments (NPR)',totalFees],['Total Payment Records',payments.length]
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sumData), 'Summary');
+
+  // All Students sheet
+  const sHeaders=['#','Name','Gender','DOB','WhatsApp','Email','Class','Section','School','Subject(s)',
+    'Enroll Date','Status','Score','Fee/Month','Parent','Relation','Parent WhatsApp','Parent Phone','Address','Notes','Added On'];
+  const sRows=students.map((s,i)=>[i+1,s.name,s.gender,s.dob,s.whatsapp,s.email,s.class,s.section,s.school,
+    s.subject,s.enrollDate,s.status,s.score,s.fee?Number(s.fee):'',s.parent,s.relation,s.parentWhatsapp,s.parentPhone,s.address,s.notes,s.addedOn]);
+  const wsAll=XLSX.utils.aoa_to_sheet([sHeaders,...sRows]);
+  wsAll['!cols']=[5,22,10,12,15,24,18,10,24,22,13,10,10,15,22,12,16,15,22,28,13].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,wsAll,'All Students');
+
+  // Per-class sheets
+  const classes=[...new Set(students.map(s=>s.class).filter(Boolean))].sort((a,b)=>{
+    const ai=CLASSES.indexOf(a),bi=CLASSES.indexOf(b);
+    return (ai===-1?99:ai)-(bi===-1?99:bi);
+  });
+  classes.forEach(cls=>{
+    const classStudents=students.filter(s=>s.class===cls);
+    const rows=classStudents.map((s,i)=>[i+1,s.name,s.section||'',s.gender,s.whatsapp,s.subject,
+      s.school,s.status,s.fee?Number(s.fee):'',s.parent,s.parentWhatsapp,s.score,s.enrollDate,s.notes]);
+    const headers=['#','Name','Section','Gender','WhatsApp','Subject(s)','School','Status','Fee/Month','Parent','Parent WhatsApp','Score','Enroll Date','Notes'];
+    const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws['!cols']=[5,22,10,10,15,22,24,10,14,22,16,10,13,28].map(w=>({wch:w}));
+    // Safe sheet name (max 31 chars, no special chars)
+    const shName=cls.replace(/[:\\/\[\]*?]/g,'-').slice(0,28);
+    XLSX.utils.book_append_sheet(wb,ws,shName);
+  });
+
+  // Payments sheet
+  const pHeaders=['#','Student','Class','Section','Parent','Parent WhatsApp','Month','Year','Amount (NPR)',
+    'Method','Date','Received By','Status','Notes','Recorded On'];
+  const pRows=payments.sort((a,b)=>new Date(b.date)-new Date(a.date)).map((p,i)=>[
+    i+1,p.studentName,p.class,p.section,p.parent,p.parentWhatsapp,p.month,p.year,
+    p.amount?Number(p.amount):'',p.method,p.date,p.receiver,p.status,p.notes,p.recordedOn]);
+  const wsPay=XLSX.utils.aoa_to_sheet([pHeaders,...pRows]);
+  wsPay['!cols']=[5,22,18,10,22,16,20,8,14,14,12,16,10,22,13].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,wsPay,'Payments');
+
+  const fname=`TutorDesk_${new Date().toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb,fname);
+
+  // Also try to save to Drive
+  if(drive_connected) saveToDrive(wb, fname);
+  else toast(`Exported ${students.length} students & ${payments.length} payments to ${fname}`,'s');
+}
+
+// ───── GOOGLE DRIVE ─────
+function saveConfig(){
+  cfg.client_id=document.getElementById('cfg_client_id').value.trim();
+  cfg.api_key=document.getElementById('cfg_api_key').value.trim();
+  if(!cfg.client_id||!cfg.api_key){ toast('Please enter both Client ID and API Key.','e'); return; }
+  localStorage.setItem('td_cfg',JSON.stringify(cfg));
+  toast('Config saved! Loading Google API…','i');
+  loadGoogleAPI();
+}
+
+function loadGoogleAPI(){
+  if(!cfg.client_id||!cfg.api_key) return;
+  // Load GAPI
+  const script1=document.createElement('script');
+  script1.src='https://apis.google.com/js/api.js';
+  script1.onload=()=>{
+    gapi.load('client',async()=>{
+      await gapi.client.init({ apiKey:cfg.api_key, discoveryDocs:['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+      gapi_loaded=true;
+    });
+  };
+  document.head.appendChild(script1);
+
+  // Load GIS
+  const script2=document.createElement('script');
+  script2.src='https://accounts.google.com/gsi/client';
+  script2.onload=()=>{
+    window._tokenClient=google.accounts.oauth2.initTokenClient({
+      client_id:cfg.client_id,
+      scope:'https://www.googleapis.com/auth/drive.file',
+      callback:(resp)=>{
+        if(resp.error){ toast('Google sign-in failed: '+resp.error,'e'); return; }
+        drive_connected=true;
+        updateDriveStatus(true);
+        toast('Connected to Google Drive! ✅','s');
+      }
+    });
+  };
+  document.head.appendChild(script2);
+}
+
+function handleDriveAuth(){
+  if(!cfg.client_id||!cfg.api_key){
+    nav('setup',document.querySelectorAll('.nav-item')[7]);
+    toast('Please set up your Google API credentials first.','i');
+    return;
+  }
+  if(drive_connected){ toast('Already connected to Google Drive.','s'); return; }
+  if(!window._tokenClient){ toast('Loading Google API, please wait a moment…','i'); setTimeout(handleDriveAuth,2000); return; }
+  window._tokenClient.requestAccessToken();
+}
+
+function updateDriveStatus(connected){
+  const btn=document.getElementById('driveBtn');
+  const txt=document.getElementById('driveBtnTxt');
+  if(connected){
+    btn.className='gdrive-status connected';
+    txt.textContent='Drive Connected ✓';
+  } else {
+    btn.className='gdrive-status disconnected';
+    txt.textContent='Connect Google Drive';
+  }
+}
+
+function testDrive(){ handleDriveAuth(); }
+
+async function saveToDrive(wb, fname){
+  if(!drive_connected||!gapi_loaded){ toast('Not connected to Drive. Exported locally only.','i'); return; }
+  try {
+    toast('Saving to Google Drive…','i');
+    const wbArray=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const blob=new Blob([wbArray],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+
+    // Find or create TutorDesk folder
+    let folderId='';
+    const folderSearch=await gapi.client.drive.files.list({q:"name='TutorDesk Backups' and mimeType='application/vnd.google-apps.folder' and trashed=false",fields:'files(id)'});
+    if(folderSearch.result.files.length){
+      folderId=folderSearch.result.files[0].id;
+    } else {
+      const folderRes=await gapi.client.drive.files.create({resource:{name:'TutorDesk Backups',mimeType:'application/vnd.google-apps.folder'},fields:'id'});
+      folderId=folderRes.result.id;
+    }
+
+    const meta={name:fname,parents:[folderId]};
+    const form=new FormData();
+    form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+    form.append('file',blob);
+
+    const token=gapi.auth.getToken();
+    const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token.access_token},
+      body:form
+    });
+    if(res.ok){ toast(`✅ Saved to Google Drive: TutorDesk Backups/${fname}`,'s'); }
+    else { toast('Drive upload failed. Check your credentials.','e'); }
+  } catch(err){ console.error(err); toast('Drive error: '+err.message,'e'); }
+}
+
+async function autoSaveDrive(){
+  if(!drive_connected) return;
+  // Build wb silently and save
+  const wb=buildWorkbook();
+  const fname=`TutorDesk_autosave_${today()}.xlsx`;
+  saveToDrive(wb,fname);
+}
+
+function buildWorkbook(){
+  const wb=XLSX.utils.book_new();
+  const sumData=[['TutorDesk Pro'],['Generated',new Date().toLocaleString()],[],['Students',students.length],['Payments',payments.length]];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sumData),'Summary');
+  const sH=['#','Name','Gender','WhatsApp','Class','Section','Subject(s)','Parent','Parent WA','Fee','Status','Enroll Date'];
+  const sR=students.map((s,i)=>[i+1,s.name,s.gender,s.whatsapp,s.class,s.section,s.subject,s.parent,s.parentWhatsapp,s.fee?Number(s.fee):'',s.status,s.enrollDate]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([sH,...sR]),'All Students');
+  const classes=[...new Set(students.map(s=>s.class).filter(Boolean))];
+  classes.forEach(cls=>{
+    const r=students.filter(s=>s.class===cls).map((s,i)=>[i+1,s.name,s.section,s.whatsapp,s.subject,s.parent,s.parentWhatsapp,s.fee?Number(s.fee):'',s.status]);
+    const h=['#','Name','Section','WhatsApp','Subject(s)','Parent','Parent WhatsApp','Fee','Status'];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([h,...r]),cls.replace(/[:\\/\[\]*?]/g,'-').slice(0,28));
+  });
+  const pH=['#','Student','Class','Month','Amount','Method','Date','Status'];
+  const pR=payments.map((p,i)=>[i+1,p.studentName,p.class,p.month,p.amount?Number(p.amount):'',p.method,p.date,p.status]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([pH,...pR]),'Payments');
+  return wb;
+}
+
+// ───── MODAL ─────
+function closeOverlay(id,e){ if(e.target===document.getElementById(id)) document.getElementById(id).classList.remove('open'); }
+function closeOverlayDirect(id){ document.getElementById(id).classList.remove('open'); }
+
+// ───── TOAST ─────
+let _tt;
+function toast(msg,type='i'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='show '+type;
+  clearTimeout(_tt); _tt=setTimeout(()=>t.className='',4000);
+}
+
+function refreshAll(){ renderDashboard(); renderStudentTable(); renderPaymentTable(); }
+
+function populateSections(){}
+</script>
+</body>
+</html>
